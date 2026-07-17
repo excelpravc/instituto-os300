@@ -1078,21 +1078,78 @@ const coletarDadosFormAluno = () => ({
   DataMatricula: normalizarDataParaEnvio(document.getElementById('alunoDataMatricula').value),
   Status: document.getElementById('alunoStatus').value
 });
-
+/**
+ * Redimensiona uma imagem para um tamanho máximo, mantendo a proporção.
+ * Retorna uma Promise com o DataURL da imagem redimensionada.
+ */
+const redimensionarImagem = (dataURL, larguraMaxima = 800, alturaMaxima = 800) => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            let largura = img.width;
+            let altura = img.height;
+            
+            // Calcula nova dimensão mantendo a proporção
+            if (largura > altura) {
+                if (largura > larguraMaxima) {
+                    altura = Math.round((altura * larguraMaxima) / largura);
+                    largura = larguraMaxima;
+                }
+            } else {
+                if (altura > alturaMaxima) {
+                    largura = Math.round((largura * alturaMaxima) / altura);
+                    altura = alturaMaxima;
+                }
+            }
+            
+            // Cria canvas e redimensiona
+            const canvas = document.createElement('canvas');
+            canvas.width = largura;
+            canvas.height = altura;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, largura, altura);
+            
+            // Converte para JPEG com qualidade 0.7 (reduz muito o tamanho)
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = dataURL;
+    });
+};
 const configurarFormularioAluno = () => {
   document.getElementById('alunoNascimento').addEventListener('change', (evento) => {
     document.getElementById('alunoIdade').value = calcularIdadeLocal(evento.target.value);
   });
   
-  const processarArquivoFoto = (arquivo) => {
+  const processarArquivoFoto = async (arquivo) => {
     if (!arquivo) return;
-    const leitor = new FileReader();
-    leitor.onload = () => {
-      document.getElementById('alunoFoto').value = leitor.result;
-      document.getElementById('alunoFotoPreview').src = leitor.result;
-    };
-    leitor.readAsDataURL(arquivo);
-  };
+    
+    mostrarLoading('Processando imagem...');
+    
+    try {
+        const leitor = new FileReader();
+        leitor.onload = async () => {
+            try {
+                // Redimensiona a imagem para reduzir o tamanho do Base64
+                const imagemRedimensionada = await redimensionarImagem(leitor.result, 800, 800);
+                document.getElementById('alunoFoto').value = imagemRedimensionada;
+                document.getElementById('alunoFotoPreview').src = imagemRedimensionada;
+                exibirToast('Imagem carregada com sucesso.', 'sucesso');
+            } catch (erro) {
+                exibirToast('Erro ao processar imagem: ' + erro.message, 'erro');
+            } finally {
+                esconderLoading();
+            }
+        };
+        leitor.onerror = () => {
+            exibirToast('Erro ao ler arquivo de imagem.', 'erro');
+            esconderLoading();
+        };
+        leitor.readAsDataURL(arquivo);
+    } catch (erro) {
+        exibirToast('Erro ao processar imagem: ' + erro.message, 'erro');
+        esconderLoading();
+    }
+};
   
   document.getElementById('avatarUploadCirculo').addEventListener('click', () => {
     document.getElementById('alunoFotoArquivo').click();
@@ -1347,15 +1404,35 @@ const configurarModalAluno = () => {
     document.getElementById('modalAlunoIdade').value = calcularIdadeLocal(evento.target.value);
   });
   
-  const processarArquivoFotoModal = (arquivo) => {
+  const processarArquivoFotoModal = async (arquivo) => {
     if (!arquivo) return;
-    const leitor = new FileReader();
-    leitor.onload = () => {
-      document.getElementById('modalAlunoFoto').value = leitor.result;
-      document.getElementById('modalAlunoFotoPreview').src = leitor.result;
-    };
-    leitor.readAsDataURL(arquivo);
-  };
+    
+    mostrarLoading('Processando imagem...');
+    
+    try {
+        const leitor = new FileReader();
+        leitor.onload = async () => {
+            try {
+                const imagemRedimensionada = await redimensionarImagem(leitor.result, 800, 800);
+                document.getElementById('modalAlunoFoto').value = imagemRedimensionada;
+                document.getElementById('modalAlunoFotoPreview').src = imagemRedimensionada;
+                exibirToast('Imagem carregada com sucesso.', 'sucesso');
+            } catch (erro) {
+                exibirToast('Erro ao processar imagem: ' + erro.message, 'erro');
+            } finally {
+                esconderLoading();
+            }
+        };
+        leitor.onerror = () => {
+            exibirToast('Erro ao ler arquivo de imagem.', 'erro');
+            esconderLoading();
+        };
+        leitor.readAsDataURL(arquivo);
+    } catch (erro) {
+        exibirToast('Erro ao processar imagem: ' + erro.message, 'erro');
+        esconderLoading();
+    }
+};
   
   document.getElementById('modalAvatarUploadCirculo').addEventListener('click', () => {
     document.getElementById('modalAlunoFotoArquivo').click();
