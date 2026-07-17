@@ -23,7 +23,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { 
   getFirestore, collection, doc, setDoc, getDoc, getDocs, 
   updateDoc, deleteDoc, query, where, orderBy, addDoc,
-  serverTimestamp, Timestamp 
+  serverTimestamp, Timestamp, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { 
   getStorage, ref, uploadBytes, getDownloadURL 
@@ -935,6 +935,20 @@ const popularSelectsProfessor = () => {
     select.value = valorAtual;
   });
 };
+/* ==================================================================================
+ * 13.5 GERADOR DE MATRÍCULA NUMÉRICA SEQUENCIAL
+ * ================================================================================== */
+const obterProximaMatricula = async () => {
+  const contadorRef = doc(db, 'contadores', 'alunos');
+  const proximoValor = await runTransaction(db, async (transacao) => {
+    const contadorSnap = await transacao.get(contadorRef);
+    const valorAtual = contadorSnap.exists() ? Number(contadorSnap.data().Valor || 0) : 0;
+    const proximo = valorAtual + 1;
+    transacao.set(contadorRef, { Valor: proximo }, { merge: true });
+    return proximo;
+  });
+  return proximoValor;
+};
 
 /* ==================================================================================
  * 14. MÓDULO ALUNOS
@@ -1240,14 +1254,16 @@ const configurarFormularioAluno = () => {
         fotoURL = await getDownloadURL(snapshot.ref);
       }
       
-      const alunoData = { ...dados, FotoURL: fotoURL };
+      const { Foto, ...dadosSemFotoBase64 } = dados;
+      const alunoData = { ...dadosSemFotoBase64, FotoURL: fotoURL };
       
       if (matricula) {
         await updateDoc(doc(db, 'alunos', matricula), alunoData);
         exibirToast('Aluno atualizado com sucesso.', 'sucesso');
       } else {
-        const docRef = await addDoc(collection(db, 'alunos'), alunoData);
-        exibirToast('Aluno cadastrado com sucesso.', 'sucesso');
+        const novaMatricula = await obterProximaMatricula();
+        await setDoc(doc(db, 'alunos', String(novaMatricula)), alunoData);
+        exibirToast('Aluno cadastrado com sucesso. Matrícula: ' + novaMatricula, 'sucesso');
       }
       
       limparFormAluno();
@@ -1537,11 +1553,17 @@ const configurarModalAluno = () => {
       
       let fotoURL = dados.Foto;
       if (dados.Foto && dados.Foto.startsWith('data:')) {
-        const response = await fetch(dados.Foto);
-        const blob = await response.blob();
-        const storageRef = ref(storage, `fotos/${matricula || 'novo'}-${Date.now()}`);
-        const snapshot = await uploadBytes(storageRef, blob);
-        fotoURL = await getDownloadURL(snapshot.ref);
+        try {
+          const response = await fetch(dados.Foto);
+          const blob = await response.blob();
+          const storageRef = ref(storage, `fotos/${matricula || 'novo'}-${Date.now()}`);
+          const snapshot = await uploadBytes(storageRef, blob);
+          fotoURL = await getDownloadURL(snapshot.ref);
+        } catch (erroUpload) {
+          console.error('[FOTO] Falha no upload:', erroUpload);
+          exibirToast('Erro ao enviar a foto: ' + erroUpload.message, 'erro');
+          fotoURL = '';
+        }
       }
       
       const alunoData = { ...dados, FotoURL: fotoURL };
