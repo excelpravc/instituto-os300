@@ -307,6 +307,37 @@ const debounce = (funcao, atrasoMs = 300) => {
     temporizador = setTimeout(() => funcao(...args), atrasoMs);
   };
 };
+/**
+ * Redimensiona e comprime uma imagem Base64 para caber na planilha.
+ * Retorna uma Promise com o novo Base64 reduzido.
+ */
+const redimensionarImagemBase64 = (base64, larguraMax = 800, qualidade = 0.7) => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            // Calcula nova dimensão mantendo proporção
+            let largura = img.width;
+            let altura = img.height;
+            
+            if (largura > larguraMax) {
+                altura = Math.round((altura * larguraMax) / largura);
+                largura = larguraMax;
+            }
+            
+            // Cria canvas e desenha imagem redimensionada
+            const canvas = document.createElement('canvas');
+            canvas.width = largura;
+            canvas.height = altura;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, largura, altura);
+            
+            // Converte para JPEG com qualidade reduzida (70%)
+            const base64Reduzido = canvas.toDataURL('image/jpeg', qualidade);
+            resolve(base64Reduzido);
+        };
+        img.src = base64;
+    });
+};
 
 /* ==================================================================================
  * 9. DATATABLES — HELPER DE RENDERIZAÇÃO
@@ -1129,24 +1160,28 @@ const configurarFormularioAluno = () => {
         const leitor = new FileReader();
         leitor.onload = async () => {
             try {
-                // Redimensiona a imagem para reduzir o tamanho do Base64
-                const imagemRedimensionada = await redimensionarImagem(leitor.result, 800, 800);
-                document.getElementById('alunoFoto').value = imagemRedimensionada;
-                document.getElementById('alunoFotoPreview').src = imagemRedimensionada;
-                exibirToast('Imagem carregada com sucesso.', 'sucesso');
+                // Redimensiona ANTES de salvar no campo
+                const base64Original = leitor.result;
+                const base64Reduzido = await redimensionarImagemBase64(base64Original, 800, 0.7);
+                
+                document.getElementById('alunoFoto').value = base64Reduzido;
+                document.getElementById('alunoFotoPreview').src = base64Reduzido;
+                
+                const tamanhoKB = Math.round(base64Reduzido.length / 1024);
+                exibirToast(`Imagem otimizada: ${tamanhoKB}KB`, 'sucesso');
             } catch (erro) {
-                exibirToast('Erro ao processar imagem: ' + erro.message, 'erro');
+                exibirToast('Erro ao processar imagem.', 'erro');
             } finally {
                 esconderLoading();
             }
         };
         leitor.onerror = () => {
-            exibirToast('Erro ao ler arquivo de imagem.', 'erro');
+            exibirToast('Erro ao ler arquivo.', 'erro');
             esconderLoading();
         };
         leitor.readAsDataURL(arquivo);
     } catch (erro) {
-        exibirToast('Erro ao processar imagem: ' + erro.message, 'erro');
+        exibirToast('Erro ao processar imagem.', 'erro');
         esconderLoading();
     }
 };
@@ -1413,23 +1448,27 @@ const configurarModalAluno = () => {
         const leitor = new FileReader();
         leitor.onload = async () => {
             try {
-                const imagemRedimensionada = await redimensionarImagem(leitor.result, 800, 800);
-                document.getElementById('modalAlunoFoto').value = imagemRedimensionada;
-                document.getElementById('modalAlunoFotoPreview').src = imagemRedimensionada;
-                exibirToast('Imagem carregada com sucesso.', 'sucesso');
+                const base64Original = leitor.result;
+                const base64Reduzido = await redimensionarImagemBase64(base64Original, 800, 0.7);
+                
+                document.getElementById('modalAlunoFoto').value = base64Reduzido;
+                document.getElementById('modalAlunoFotoPreview').src = base64Reduzido;
+                
+                const tamanhoKB = Math.round(base64Reduzido.length / 1024);
+                exibirToast(`Imagem otimizada: ${tamanhoKB}KB`, 'sucesso');
             } catch (erro) {
-                exibirToast('Erro ao processar imagem: ' + erro.message, 'erro');
+                exibirToast('Erro ao processar imagem.', 'erro');
             } finally {
                 esconderLoading();
             }
         };
         leitor.onerror = () => {
-            exibirToast('Erro ao ler arquivo de imagem.', 'erro');
+            exibirToast('Erro ao ler arquivo.', 'erro');
             esconderLoading();
         };
         leitor.readAsDataURL(arquivo);
     } catch (erro) {
-        exibirToast('Erro ao processar imagem: ' + erro.message, 'erro');
+        exibirToast('Erro ao processar imagem.', 'erro');
         esconderLoading();
     }
 };
