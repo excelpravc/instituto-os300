@@ -23,23 +23,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { 
   getFirestore, collection, doc, setDoc, getDoc, getDocs, 
   updateDoc, deleteDoc, query, where, orderBy, addDoc,
-  serverTimestamp, Timestamp, runTransaction
+  serverTimestamp, Timestamp 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-// Firebase Storage removido — uploads agora vão para o Google Drive
+import { 
+  getStorage, ref, uploadBytes, getDownloadURL 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 // ⚠️ SUBSTITUA PELAS SUAS CHAVES DO FIREBASE
 const firebaseConfig = {
-  apiKey: "AIzaSyDfK9H7eThdB34vNMKqsT2sqec9MLoEtg",
-  authDomain: "instituto-os300.firebaseapp.com",
-  projectId: "instituto-os300",
-  storageBucket: "instituto-os300.firebasestorage.app",
-  messagingSenderId: "399635589328",
-  appId: "1:399635589328:web:0f9fe0709b6a0e15b056d5",
-  measurementId: "G-TKMJTH3LY7"
+  apiKey: "SUA_API_KEY",
+  authDomain: "seu-projeto.firebaseapp.com",
+  projectId: "seu-projeto",
+  storageBucket: "seu-projeto.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 /* ==================================================================================
  * 2. ESTADO GLOBAL E CONSTANTES
@@ -74,97 +76,6 @@ const DATATABLES_PT_BR = {
   search: 'Pesquisar:',
   zeroRecords: 'Nenhum registro encontrado',
   paginate: { next: 'Próximo', previous: 'Anterior', first: 'Primeiro', last: 'Último' }
-};
-
-/* ==================================================================================
- * 2.5 GOOGLE DRIVE — UPLOAD DE FOTOS (substitui o Firebase Storage)
- * ================================================================================== */
-// ⚠️ PREENCHA com o Client ID OAuth criado no Google Cloud Console
-const DRIVE_CLIENT_ID = '383270609881-ufuhb127mtt14b4a3s90lh795rgsn19l.apps.googleusercontent.com';
-// ⚠️ PREENCHA com o ID da pasta do Google Drive (o trecho depois de /folders/ na URL)
-const DRIVE_PASTA_ID = '17c05pg5BSPoOnZF2IgN99iGys5dpWLDo';
-const DRIVE_ESCOPO = 'https://www.googleapis.com/auth/drive.file';
-
-let TOKEN_DRIVE = null;
-let TOKEN_DRIVE_EXPIRA_EM = 0;
-
-const tokenDriveValido = () => TOKEN_DRIVE && Date.now() < TOKEN_DRIVE_EXPIRA_EM - 5000;
-
-const atualizarBotaoConexaoDrive = (conectado) => {
-  const botao = document.getElementById('btnConectarDrive');
-  const status = document.getElementById('statusConexaoDrive');
-  if (!botao || !status) return;
-  botao.classList.toggle('conectado', conectado);
-  status.textContent = conectado ? 'Google Drive conectado' : 'Conectar Google Drive';
-};
-
-const solicitarAcessoDrive = (interativo = true) => {
-  return new Promise((resolve) => {
-    if (!window.google || !google.accounts || !google.accounts.oauth2) {
-      exibirToast('Google Identity Services ainda não carregou. Recarregue a página.', 'erro');
-      resolve(false);
-      return;
-    }
-    if (tokenDriveValido()) { resolve(true); return; }
-    const cliente = google.accounts.oauth2.initTokenClient({
-      client_id: DRIVE_CLIENT_ID,
-      scope: DRIVE_ESCOPO,
-      callback: (resposta) => {
-        if (resposta.error) {
-          exibirToast('Falha ao conectar ao Google Drive: ' + resposta.error, 'erro');
-          resolve(false);
-          return;
-        }
-        TOKEN_DRIVE = resposta.access_token;
-        TOKEN_DRIVE_EXPIRA_EM = Date.now() + (Number(resposta.expires_in || 3600) * 1000);
-        atualizarBotaoConexaoDrive(true);
-        resolve(true);
-      }
-    });
-    cliente.requestAccessToken({ prompt: interativo ? 'consent' : '' });
-  });
-};
-
-const configurarBotaoDrive = () => {
-  document.getElementById('btnConectarDrive').addEventListener('click', () => solicitarAcessoDrive(true));
-};
-
-/**
- * Envia um Blob para a pasta configurada do Google Drive e retorna uma URL pública de visualização.
- */
-const enviarArquivoParaDrive = async (blob, nomeArquivo) => {
-  const conectado = await solicitarAcessoDrive(!tokenDriveValido());
-  if (!conectado) throw new Error('Conexão com o Google Drive não autorizada.');
-
-  const metadados = { name: nomeArquivo, parents: [DRIVE_PASTA_ID] };
-  const limite = '-------drive-upload-limite';
-  const corpoTexto = new TextEncoder().encode(
-    `--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadados)}\r\n` +
-    `--${limite}\r\nContent-Type: ${blob.type || 'application/octet-stream'}\r\n\r\n`
-  );
-  const corpoBlob = new Uint8Array(await blob.arrayBuffer());
-  const corpoFim = new TextEncoder().encode(`\r\n--${limite}--`);
-  const corpoCompleto = new Blob([corpoTexto, corpoBlob, corpoFim]);
-
-  const respostaUpload = await fetch(
-    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
-    {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${TOKEN_DRIVE}`, 'Content-Type': `multipart/related; boundary=${limite}` },
-      body: corpoCompleto
-    }
-  );
-  if (!respostaUpload.ok) throw new Error('Erro no upload ao Drive: ' + await respostaUpload.text());
-
-  const { id: idArquivo } = await respostaUpload.json();
-
-  await fetch(`https://www.googleapis.com/drive/v3/files/${idArquivo}/permissions`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${TOKEN_DRIVE}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role: 'reader', type: 'anyone' })
-  });
-
-  return `https://drive.google.com/uc?export=view&id=${idArquivo}`;
 };
 
 /* ==================================================================================
@@ -395,37 +306,6 @@ const debounce = (funcao, atrasoMs = 300) => {
     temporizador = setTimeout(() => funcao(...args), atrasoMs);
   };
 };
-/**
- * Redimensiona e comprime uma imagem Base64 para caber na planilha.
- * Retorna uma Promise com o novo Base64 reduzido.
- */
-const redimensionarImagemBase64 = (base64, larguraMax = 800, qualidade = 0.7) => {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-            // Calcula nova dimensão mantendo proporção
-            let largura = img.width;
-            let altura = img.height;
-            
-            if (largura > larguraMax) {
-                altura = Math.round((altura * larguraMax) / largura);
-                largura = larguraMax;
-            }
-            
-            // Cria canvas e desenha imagem redimensionada
-            const canvas = document.createElement('canvas');
-            canvas.width = largura;
-            canvas.height = altura;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, largura, altura);
-            
-            // Converte para JPEG com qualidade reduzida (70%)
-            const base64Reduzido = canvas.toDataURL('image/jpeg', qualidade);
-            resolve(base64Reduzido);
-        };
-        img.src = base64;
-    });
-};
 
 /* ==================================================================================
  * 9. DATATABLES — HELPER DE RENDERIZAÇÃO
@@ -515,13 +395,7 @@ const iniciarSistema = async () => {
   executarComSeguranca('vincularPesquisaInstantanea (tabelaAlunosLista)', () => vincularPesquisaInstantanea('pesquisaAlunosLista', 'tabelaAlunosLista'));
   executarComSeguranca('vincularPesquisaInstantanea (tabelaModalidades)', () => vincularPesquisaInstantanea('pesquisaModalidades', 'tabelaModalidades'));
   executarComSeguranca('vincularPesquisaInstantanea (tabelaProfessores)', () => vincularPesquisaInstantanea('pesquisaProfessores', 'tabelaProfessores'));
-  executarComSeguranca('vincularImportacaoModalidades', () => {
-    document.getElementById('inputImportarModalidades').addEventListener('change', importarPlanilhaModalidades);
-});
-
-executarComSeguranca('vincularImportacaoProfessores', () => {
-    document.getElementById('inputImportarProfessores').addEventListener('change', importarPlanilhaProfessores);
-});
+  
   executarComSeguranca('datas padrão', () => {
     const hojeISO = paraInputDate(new Date());
     document.getElementById('presencaData').value = hojeISO;
@@ -531,7 +405,6 @@ executarComSeguranca('vincularImportacaoProfessores', () => {
   });
   
   executarComSeguranca('configurarUploadLogoInstituto', configurarUploadLogoInstituto);
-  executarComSeguranca('configurarBotaoDrive', configurarBotaoDrive);
 
   try {
     await Promise.all([carregarModalidades(), carregarProfessores()]);
@@ -581,7 +454,9 @@ const configurarUploadLogoInstituto = () => {
     
     try {
       mostrarLoading('Enviando logo...');
-      const url = await enviarArquivoParaDrive(arquivo, `instituto-logo-${Date.now()}.jpg`);
+      const storageRef = ref(storage, `logos/instituto-logo-${Date.now()}`);
+      const snapshot = await uploadBytes(storageRef, arquivo);
+      const url = await getDownloadURL(snapshot.ref);
       
       const docRef = doc(db, 'configuracoes', 'global');
       await setDoc(docRef, { LogoURL: url }, { merge: true });
@@ -1022,20 +897,6 @@ const popularSelectsProfessor = () => {
     select.value = valorAtual;
   });
 };
-/* ==================================================================================
- * 13.5 GERADOR DE MATRÍCULA NUMÉRICA SEQUENCIAL
- * ================================================================================== */
-const obterProximaMatricula = async () => {
-  const contadorRef = doc(db, 'contadores', 'alunos');
-  const proximoValor = await runTransaction(db, async (transacao) => {
-    const contadorSnap = await transacao.get(contadorRef);
-    const valorAtual = contadorSnap.exists() ? Number(contadorSnap.data().Valor || 0) : 0;
-    const proximo = valorAtual + 1;
-    transacao.set(contadorRef, { Valor: proximo }, { merge: true });
-    return proximo;
-  });
-  return proximoValor;
-};
 
 /* ==================================================================================
  * 14. MÓDULO ALUNOS
@@ -1210,82 +1071,21 @@ const coletarDadosFormAluno = () => ({
   DataMatricula: normalizarDataParaEnvio(document.getElementById('alunoDataMatricula').value),
   Status: document.getElementById('alunoStatus').value
 });
-/**
- * Redimensiona uma imagem para um tamanho máximo, mantendo a proporção.
- * Retorna uma Promise com o DataURL da imagem redimensionada.
- */
-const redimensionarImagem = (dataURL, larguraMaxima = 800, alturaMaxima = 800) => {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-            let largura = img.width;
-            let altura = img.height;
-            
-            // Calcula nova dimensão mantendo a proporção
-            if (largura > altura) {
-                if (largura > larguraMaxima) {
-                    altura = Math.round((altura * larguraMaxima) / largura);
-                    largura = larguraMaxima;
-                }
-            } else {
-                if (altura > alturaMaxima) {
-                    largura = Math.round((largura * alturaMaxima) / altura);
-                    altura = alturaMaxima;
-                }
-            }
-            
-            // Cria canvas e redimensiona
-            const canvas = document.createElement('canvas');
-            canvas.width = largura;
-            canvas.height = altura;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, largura, altura);
-            
-            // Converte para JPEG com qualidade 0.7 (reduz muito o tamanho)
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
-        };
-        img.src = dataURL;
-    });
-};
+
 const configurarFormularioAluno = () => {
   document.getElementById('alunoNascimento').addEventListener('change', (evento) => {
     document.getElementById('alunoIdade').value = calcularIdadeLocal(evento.target.value);
   });
   
-  const processarArquivoFoto = async (arquivo) => {
+  const processarArquivoFoto = (arquivo) => {
     if (!arquivo) return;
-    
-    mostrarLoading('Processando imagem...');
-    
-    try {
-        const leitor = new FileReader();
-        leitor.onload = async () => {
-            try {
-                // Redimensiona ANTES de salvar no campo
-                const base64Original = leitor.result;
-                const base64Reduzido = await redimensionarImagemBase64(base64Original, 800, 0.7);
-                
-                document.getElementById('alunoFoto').value = base64Reduzido;
-                document.getElementById('alunoFotoPreview').src = base64Reduzido;
-                
-                const tamanhoKB = Math.round(base64Reduzido.length / 1024);
-                exibirToast(`Imagem otimizada: ${tamanhoKB}KB`, 'sucesso');
-            } catch (erro) {
-                exibirToast('Erro ao processar imagem.', 'erro');
-            } finally {
-                esconderLoading();
-            }
-        };
-        leitor.onerror = () => {
-            exibirToast('Erro ao ler arquivo.', 'erro');
-            esconderLoading();
-        };
-        leitor.readAsDataURL(arquivo);
-    } catch (erro) {
-        exibirToast('Erro ao processar imagem.', 'erro');
-        esconderLoading();
-    }
-};
+    const leitor = new FileReader();
+    leitor.onload = () => {
+      document.getElementById('alunoFoto').value = leitor.result;
+      document.getElementById('alunoFotoPreview').src = leitor.result;
+    };
+    leitor.readAsDataURL(arquivo);
+  };
   
   document.getElementById('avatarUploadCirculo').addEventListener('click', () => {
     document.getElementById('alunoFotoArquivo').click();
@@ -1341,16 +1141,14 @@ const configurarFormularioAluno = () => {
         fotoURL = await getDownloadURL(snapshot.ref);
       }
       
-      const { Foto, ...dadosSemFotoBase64 } = dados;
-      const alunoData = { ...dadosSemFotoBase64, FotoURL: fotoURL };
+      const alunoData = { ...dados, FotoURL: fotoURL };
       
       if (matricula) {
         await updateDoc(doc(db, 'alunos', matricula), alunoData);
         exibirToast('Aluno atualizado com sucesso.', 'sucesso');
       } else {
-        const novaMatricula = await obterProximaMatricula();
-        await setDoc(doc(db, 'alunos', String(novaMatricula)), alunoData);
-        exibirToast('Aluno cadastrado com sucesso. Matrícula: ' + novaMatricula, 'sucesso');
+        const docRef = await addDoc(collection(db, 'alunos'), alunoData);
+        exibirToast('Aluno cadastrado com sucesso.', 'sucesso');
       }
       
       limparFormAluno();
@@ -1542,39 +1340,15 @@ const configurarModalAluno = () => {
     document.getElementById('modalAlunoIdade').value = calcularIdadeLocal(evento.target.value);
   });
   
-  const processarArquivoFotoModal = async (arquivo) => {
+  const processarArquivoFotoModal = (arquivo) => {
     if (!arquivo) return;
-    
-    mostrarLoading('Processando imagem...');
-    
-    try {
-        const leitor = new FileReader();
-        leitor.onload = async () => {
-            try {
-                const base64Original = leitor.result;
-                const base64Reduzido = await redimensionarImagemBase64(base64Original, 800, 0.7);
-                
-                document.getElementById('modalAlunoFoto').value = base64Reduzido;
-                document.getElementById('modalAlunoFotoPreview').src = base64Reduzido;
-                
-                const tamanhoKB = Math.round(base64Reduzido.length / 1024);
-                exibirToast(`Imagem otimizada: ${tamanhoKB}KB`, 'sucesso');
-            } catch (erro) {
-                exibirToast('Erro ao processar imagem.', 'erro');
-            } finally {
-                esconderLoading();
-            }
-        };
-        leitor.onerror = () => {
-            exibirToast('Erro ao ler arquivo.', 'erro');
-            esconderLoading();
-        };
-        leitor.readAsDataURL(arquivo);
-    } catch (erro) {
-        exibirToast('Erro ao processar imagem.', 'erro');
-        esconderLoading();
-    }
-};
+    const leitor = new FileReader();
+    leitor.onload = () => {
+      document.getElementById('modalAlunoFoto').value = leitor.result;
+      document.getElementById('modalAlunoFotoPreview').src = leitor.result;
+    };
+    leitor.readAsDataURL(arquivo);
+  };
   
   document.getElementById('modalAvatarUploadCirculo').addEventListener('click', () => {
     document.getElementById('modalAlunoFotoArquivo').click();
@@ -1640,15 +1414,11 @@ const configurarModalAluno = () => {
       
       let fotoURL = dados.Foto;
       if (dados.Foto && dados.Foto.startsWith('data:')) {
-        try {
-          const response = await fetch(dados.Foto);
-          const blob = await response.blob();
-          fotoURL = await enviarArquivoParaDrive(blob, `aluno-${matricula || 'novo'}-${Date.now()}.jpg`);
-        } catch (erroUpload) {
-          console.error('[FOTO] Falha no upload:', erroUpload);
-          exibirToast('Erro ao enviar a foto: ' + erroUpload.message, 'erro');
-          fotoURL = '';
-        }
+        const response = await fetch(dados.Foto);
+        const blob = await response.blob();
+        const storageRef = ref(storage, `fotos/${matricula || 'novo'}-${Date.now()}`);
+        const snapshot = await uploadBytes(storageRef, blob);
+        fotoURL = await getDownloadURL(snapshot.ref);
       }
       
       const alunoData = { ...dados, FotoURL: fotoURL };
@@ -2451,142 +2221,4 @@ const configurarTelaConfiguracoes = () => {
       esconderLoading();
     }
   });
-};
-/* ==================================================================================
- * 21. IMPORTAÇÃO DE MODALIDADES VIA PLANILHA (SheetJS)
- * ================================================================================== */
-const MAPA_COLUNAS_IMPORTACAO_MODALIDADES = {
-    Nome: ['Nome', 'Modalidade', 'Nome da Modalidade'],
-    Professor: ['Professor', 'Instrutor'],
-    Dias: ['Dias', 'Dias da Semana'],
-    Horarios: ['Horarios', 'Horários', 'Horario'],
-    FaixaEtaria: ['FaixaEtaria', 'Faixa Etária', 'Idade'],
-    MaxAlunos: ['MaxAlunos', 'Max Alunos', 'Máximo de Alunos'],
-    Local: ['Local', 'Localização'],
-    Descricao: ['Descricao', 'Descrição'],
-    Status: ['Status']
-};
-
-const importarPlanilhaModalidades = async (evento) => {
-    const arquivo = evento.target.files[0];
-    if (!arquivo) return;
-    
-    mostrarLoading('Lendo planilha...');
-    
-    try {
-        const bufferArquivo = await arquivo.arrayBuffer();
-        const pastaTrabalho = XLSX.read(bufferArquivo, { type: 'array', cellDates: true });
-        const primeiraAba = pastaTrabalho.Sheets[pastaTrabalho.SheetNames[0]];
-        const linhasBrutas = XLSX.utils.sheet_to_json(primeiraAba, { defval: '' });
-        
-        if (linhasBrutas.length === 0) {
-            exibirToast('A planilha selecionada está vazia.', 'erro');
-            return;
-        }
-        
-        const modalidadesNormalizadas = linhasBrutas.map(linha => {
-            const objeto = {};
-            Object.keys(MAPA_COLUNAS_IMPORTACAO_MODALIDADES).forEach(campo => {
-                for (const chave of MAPA_COLUNAS_IMPORTACAO_MODALIDADES[campo]) {
-                    if (linha[chave] !== undefined && linha[chave] !== null && linha[chave] !== '') {
-                        objeto[campo] = linha[chave];
-                        break;
-                    }
-                }
-            });
-            objeto.Status = objeto.Status || 'Ativo';
-            return objeto;
-        }).filter(m => m.Nome);
-        
-        mostrarLoading(`Importando ${modalidadesNormalizadas.length} modalidades...`);
-        
-        let importados = 0;
-        let ignorados = 0;
-        
-        for (const modalidade of modalidadesNormalizadas) {
-            try {
-                await addDoc(collection(db, 'modalidades'), modalidade);
-                importados++;
-            } catch (erro) {
-                ignorados++;
-            }
-        }
-        
-        exibirToast(`Importação concluída: ${importados} importados, ${ignorados} ignorados.`, 'sucesso');
-        await carregarModalidades();
-        await carregarDashboard(false);
-    } catch (erro) {
-        exibirToast('Erro ao ler a planilha: ' + erro.message, 'erro');
-    } finally {
-        esconderLoading();
-        evento.target.value = '';
-    }
-};
-
-/* ==================================================================================
- * 22. IMPORTAÇÃO DE PROFESSORES VIA PLANILHA (SheetJS)
- * ================================================================================== */
-const MAPA_COLUNAS_IMPORTACAO_PROFESSORES = {
-    Nome: ['Nome', 'Professor', 'Nome do Professor'],
-    Telefone: ['Telefone', 'Fone', 'Celular'],
-    Email: ['Email', 'E-mail'],
-    Especialidade: ['Especialidade', 'Área', 'Disciplina'],
-    Modalidades: ['Modalidades', 'Modalidade'],
-    Status: ['Status']
-};
-
-const importarPlanilhaProfessores = async (evento) => {
-    const arquivo = evento.target.files[0];
-    if (!arquivo) return;
-    
-    mostrarLoading('Lendo planilha...');
-    
-    try {
-        const bufferArquivo = await arquivo.arrayBuffer();
-        const pastaTrabalho = XLSX.read(bufferArquivo, { type: 'array', cellDates: true });
-        const primeiraAba = pastaTrabalho.Sheets[pastaTrabalho.SheetNames[0]];
-        const linhasBrutas = XLSX.utils.sheet_to_json(primeiraAba, { defval: '' });
-        
-        if (linhasBrutas.length === 0) {
-            exibirToast('A planilha selecionada está vazia.', 'erro');
-            return;
-        }
-        
-        const professoresNormalizados = linhasBrutas.map(linha => {
-            const objeto = {};
-            Object.keys(MAPA_COLUNAS_IMPORTACAO_PROFESSORES).forEach(campo => {
-                for (const chave of MAPA_COLUNAS_IMPORTACAO_PROFESSORES[campo]) {
-                    if (linha[chave] !== undefined && linha[chave] !== null && linha[chave] !== '') {
-                        objeto[campo] = linha[chave];
-                        break;
-                    }
-                }
-            });
-            objeto.Status = objeto.Status || 'Ativo';
-            return objeto;
-        }).filter(p => p.Nome);
-        
-        mostrarLoading(`Importando ${professoresNormalizados.length} professores...`);
-        
-        let importados = 0;
-        let ignorados = 0;
-        
-        for (const professor of professoresNormalizados) {
-            try {
-                await addDoc(collection(db, 'professores'), professor);
-                importados++;
-            } catch (erro) {
-                ignorados++;
-            }
-        }
-        
-        exibirToast(`Importação concluída: ${importados} importados, ${ignorados} ignorados.`, 'sucesso');
-        await carregarProfessores();
-        await carregarDashboard(false);
-    } catch (erro) {
-        exibirToast('Erro ao ler a planilha: ' + erro.message, 'erro');
-    } finally {
-        esconderLoading();
-        evento.target.value = '';
-    }
 };
