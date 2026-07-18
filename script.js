@@ -31,12 +31,13 @@ import {
 
 // ⚠️ SUBSTITUA PELAS SUAS CHAVES DO FIREBASE
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "seu-projeto.firebaseapp.com",
-  projectId: "seu-projeto",
-  storageBucket: "seu-projeto.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
+  apiKey: "AIzaSyDfK9H7eThdB34vNMKqsT2sqec9MLoEtg",
+  authDomain: "instituto-os300.firebaseapp.com",
+  projectId: "instituto-os300",
+  storageBucket: "instituto-os300.firebasestorage.app",
+  messagingSenderId: "399635589328",
+  appId: "1:399635589328:web:0f9fe0709b6a0e15b056d5",
+  measurementId: "G-TKMJTH3LY7"
 };
 
 const app = initializeApp(firebaseConfig);
