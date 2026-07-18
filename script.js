@@ -1164,14 +1164,16 @@ const configurarFormularioAluno = () => {
         fotoURL = await getDownloadURL(snapshot.ref);
       }
       
-      const alunoData = { ...dados, FotoURL: fotoURL };
+      const { Foto, ...dadosSemFotoBase64 } = dados;
+      const alunoData = { ...dadosSemFotoBase64, FotoURL: fotoURL };
       
       if (matricula) {
         await updateDoc(doc(db, 'alunos', matricula), alunoData);
         exibirToast('Aluno atualizado com sucesso.', 'sucesso');
       } else {
-        const docRef = await addDoc(collection(db, 'alunos'), alunoData);
-        exibirToast('Aluno cadastrado com sucesso.', 'sucesso');
+        const novaMatricula = await obterProximaMatricula();
+        await setDoc(doc(db, 'alunos', String(novaMatricula)), alunoData);
+        exibirToast('Aluno cadastrado com sucesso. Matrícula: ' + novaMatricula, 'sucesso');
       }
       
       limparFormAluno();
