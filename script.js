@@ -23,7 +23,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { 
   getFirestore, collection, doc, setDoc, getDoc, getDocs, 
   updateDoc, deleteDoc, query, where, orderBy, addDoc,
-  serverTimestamp, Timestamp 
+  serverTimestamp, Timestamp, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { 
   getStorage, ref, uploadBytes, getDownloadURL 
@@ -904,6 +904,21 @@ const popularSelectsProfessor = () => {
     select.innerHTML = '<option value="">Selecione...</option>' + ativos.map((p) => `<option value="${p.Nome}">${p.Nome}</option>`).join('');
     select.value = valorAtual;
   });
+};
+
+/* ==================================================================================
+ * 13.5 GERADOR DE MATRÍCULA NUMÉRICA SEQUENCIAL
+ * ================================================================================== */
+const obterProximaMatricula = async () => {
+  const contadorRef = doc(db, 'contadores', 'alunos');
+  const proximoValor = await runTransaction(db, async (transacao) => {
+    const contadorSnap = await transacao.get(contadorRef);
+    const valorAtual = contadorSnap.exists() ? Number(contadorSnap.data().Valor || 0) : 0;
+    const proximo = valorAtual + 1;
+    transacao.set(contadorRef, { Valor: proximo }, { merge: true });
+    return proximo;
+  });
+  return proximoValor;
 };
 
 /* ==================================================================================
