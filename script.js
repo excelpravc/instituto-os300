@@ -1190,13 +1190,13 @@ const configurarFormularioAluno = () => {
   document.getElementById('btnLimparFormAluno').addEventListener('click', limparFormAluno);
   
   $(document).on('click', '.acao-editar-aluno', async function () {
-    const matricula = $(this).data('matricula');
-    const aluno = CACHE_ALUNOS.find(a => (a.id || a.Matricula) === matricula);
+    const matricula = String($(this).data('matricula'));
+    const aluno = CACHE_ALUNOS.find(a => String(a.id || a.Matricula) === matricula);
     if (aluno) preencherFormAluno(aluno);
   });
   
   $(document).on('click', '.acao-excluir-aluno', async function () {
-    const matricula = $(this).data('matricula');
+    const matricula = String($(this).data('matricula'));
     const confirmado = await confirmarAcao('Excluir aluno', `Deseja realmente excluir o aluno de matrícula ${matricula}? Esta ação não pode ser desfeita.`);
     if (!confirmado) return;
     
@@ -1468,13 +1468,13 @@ const configurarModalAluno = () => {
   });
   
   $(document).on('click', '.acao-editar-aluno-modal', async function () {
-    const matricula = $(this).data('matricula');
-    const aluno = CACHE_ALUNOS.find(a => (a.id || a.Matricula) === matricula);
+    const matricula = String($(this).data('matricula'));
+    const aluno = CACHE_ALUNOS.find(a => String(a.id || a.Matricula) === matricula);
     if (aluno) preencherFormModalAluno(aluno);
   });
   
   $(document).on('click', '.acao-excluir-aluno-lista', async function () {
-    const matricula = $(this).data('matricula');
+    const matricula = String($(this).data('matricula'));
     const confirmado = await confirmarAcao('Excluir aluno', `Deseja realmente excluir o aluno de matrícula ${matricula}? Esta ação não pode ser desfeita.`);
     if (!confirmado) return;
     
