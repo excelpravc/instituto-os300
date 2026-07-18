@@ -25,9 +25,7 @@ import {
   updateDoc, deleteDoc, query, where, orderBy, addDoc,
   serverTimestamp, Timestamp, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { 
-  getStorage, ref, uploadBytes, getDownloadURL 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+// Firebase Storage removido — uploads agora vão para o Google Drive
 
 // ⚠️ SUBSTITUA PELAS SUAS CHAVES DO FIREBASE
 const firebaseConfig = {
@@ -42,7 +40,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 /* ==================================================================================
  * 2. ESTADO GLOBAL E CONSTANTES
@@ -77,6 +74,97 @@ const DATATABLES_PT_BR = {
   search: 'Pesquisar:',
   zeroRecords: 'Nenhum registro encontrado',
   paginate: { next: 'Próximo', previous: 'Anterior', first: 'Primeiro', last: 'Último' }
+};
+
+/* ==================================================================================
+ * 2.5 GOOGLE DRIVE — UPLOAD DE FOTOS (substitui o Firebase Storage)
+ * ================================================================================== */
+// ⚠️ PREENCHA com o Client ID OAuth criado no Google Cloud Console
+const DRIVE_CLIENT_ID = 'SEU_CLIENT_ID_AQUI.apps.googleusercontent.com';
+// ⚠️ PREENCHA com o ID da pasta do Google Drive (o trecho depois de /folders/ na URL)
+const DRIVE_PASTA_ID = 'SEU_ID_DE_PASTA_AQUI';
+const DRIVE_ESCOPO = 'https://www.googleapis.com/auth/drive.file';
+
+let TOKEN_DRIVE = null;
+let TOKEN_DRIVE_EXPIRA_EM = 0;
+
+const tokenDriveValido = () => TOKEN_DRIVE && Date.now() < TOKEN_DRIVE_EXPIRA_EM - 5000;
+
+const atualizarBotaoConexaoDrive = (conectado) => {
+  const botao = document.getElementById('btnConectarDrive');
+  const status = document.getElementById('statusConexaoDrive');
+  if (!botao || !status) return;
+  botao.classList.toggle('conectado', conectado);
+  status.textContent = conectado ? 'Google Drive conectado' : 'Conectar Google Drive';
+};
+
+const solicitarAcessoDrive = (interativo = true) => {
+  return new Promise((resolve) => {
+    if (!window.google || !google.accounts || !google.accounts.oauth2) {
+      exibirToast('Google Identity Services ainda não carregou. Recarregue a página.', 'erro');
+      resolve(false);
+      return;
+    }
+    if (tokenDriveValido()) { resolve(true); return; }
+    const cliente = google.accounts.oauth2.initTokenClient({
+      client_id: DRIVE_CLIENT_ID,
+      scope: DRIVE_ESCOPO,
+      callback: (resposta) => {
+        if (resposta.error) {
+          exibirToast('Falha ao conectar ao Google Drive: ' + resposta.error, 'erro');
+          resolve(false);
+          return;
+        }
+        TOKEN_DRIVE = resposta.access_token;
+        TOKEN_DRIVE_EXPIRA_EM = Date.now() + (Number(resposta.expires_in || 3600) * 1000);
+        atualizarBotaoConexaoDrive(true);
+        resolve(true);
+      }
+    });
+    cliente.requestAccessToken({ prompt: interativo ? 'consent' : '' });
+  });
+};
+
+const configurarBotaoDrive = () => {
+  document.getElementById('btnConectarDrive').addEventListener('click', () => solicitarAcessoDrive(true));
+};
+
+/**
+ * Envia um Blob para a pasta configurada do Google Drive e retorna uma URL pública de visualização.
+ */
+const enviarArquivoParaDrive = async (blob, nomeArquivo) => {
+  const conectado = await solicitarAcessoDrive(!tokenDriveValido());
+  if (!conectado) throw new Error('Conexão com o Google Drive não autorizada.');
+
+  const metadados = { name: nomeArquivo, parents: [DRIVE_PASTA_ID] };
+  const limite = '-------drive-upload-limite';
+  const corpoTexto = new TextEncoder().encode(
+    `--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadados)}\r\n` +
+    `--${limite}\r\nContent-Type: ${blob.type || 'application/octet-stream'}\r\n\r\n`
+  );
+  const corpoBlob = new Uint8Array(await blob.arrayBuffer());
+  const corpoFim = new TextEncoder().encode(`\r\n--${limite}--`);
+  const corpoCompleto = new Blob([corpoTexto, corpoBlob, corpoFim]);
+
+  const respostaUpload = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${TOKEN_DRIVE}`, 'Content-Type': `multipart/related; boundary=${limite}` },
+      body: corpoCompleto
+    }
+  );
+  if (!respostaUpload.ok) throw new Error('Erro no upload ao Drive: ' + await respostaUpload.text());
+
+  const { id: idArquivo } = await respostaUpload.json();
+
+  await fetch(`https://www.googleapis.com/drive/v3/files/${idArquivo}/permissions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${TOKEN_DRIVE}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' })
+  });
+
+  return `https://drive.google.com/uc?export=view&id=${idArquivo}`;
 };
 
 /* ==================================================================================
@@ -443,6 +531,7 @@ executarComSeguranca('vincularImportacaoProfessores', () => {
   });
   
   executarComSeguranca('configurarUploadLogoInstituto', configurarUploadLogoInstituto);
+  executarComSeguranca('configurarBotaoDrive', configurarBotaoDrive);
 
   try {
     await Promise.all([carregarModalidades(), carregarProfessores()]);
@@ -492,9 +581,7 @@ const configurarUploadLogoInstituto = () => {
     
     try {
       mostrarLoading('Enviando logo...');
-      const storageRef = ref(storage, `logos/instituto-logo-${Date.now()}`);
-      const snapshot = await uploadBytes(storageRef, arquivo);
-      const url = await getDownloadURL(snapshot.ref);
+      const url = await enviarArquivoParaDrive(arquivo, `instituto-logo-${Date.now()}.jpg`);
       
       const docRef = doc(db, 'configuracoes', 'global');
       await setDoc(docRef, { LogoURL: url }, { merge: true });
@@ -1556,9 +1643,7 @@ const configurarModalAluno = () => {
         try {
           const response = await fetch(dados.Foto);
           const blob = await response.blob();
-          const storageRef = ref(storage, `fotos/${matricula || 'novo'}-${Date.now()}`);
-          const snapshot = await uploadBytes(storageRef, blob);
-          fotoURL = await getDownloadURL(snapshot.ref);
+          fotoURL = await enviarArquivoParaDrive(blob, `aluno-${matricula || 'novo'}-${Date.now()}.jpg`);
         } catch (erroUpload) {
           console.error('[FOTO] Falha no upload:', erroUpload);
           exibirToast('Erro ao enviar a foto: ' + erroUpload.message, 'erro');
