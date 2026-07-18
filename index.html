@@ -331,6 +331,11 @@
                 <input type="hidden" id="sidebarLogoBase64">
             </div>
 
+            <button type="button" id="btnConectarDrive" class="btn-conectar-drive">
+                <i class="fa-brands fa-google-drive"></i>
+                <span id="statusConexaoDrive">Conectar Google Drive</span>
+            </button>
+
             <nav class="sidebar-menu">
                 <a href="#" class="menu-item ativo" data-tela="telaDashboard">
                     <i class="fa-solid fa-chart-line"></i><span>Dashboard</span>
@@ -1009,6 +1014,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     
+    <!-- Google Identity Services (login para Google Drive) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <!-- Script Local -->
 <script type="module" src="script.js"></script>
 </body>
