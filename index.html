@@ -5,8 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Instituto Os 300 | Sistema de Gestão</title>
-    <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
+    
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
@@ -18,22 +17,16 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- ============================================================
-    OVERLAY DE CARREGAMENTO GLOBAL
-    ============================================================= -->
+    <!-- OVERLAY DE CARREGAMENTO GLOBAL -->
     <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="loading-spinner"></div>
         <p id="loadingTexto">Carregando...</p>
     </div>
 
-    <!-- ============================================================
-    CONTAINER DE TOASTS
-    ============================================================= -->
+    <!-- CONTAINER DE TOASTS -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- ============================================================
-    MODAL DE CONFIRMAÇÃO GENÉRICO
-    ============================================================= -->
+    <!-- MODAL DE CONFIRMAÇÃO GENÉRICO -->
     <div id="modalConfirmacao" class="modal-overlay hidden">
         <div class="modal-box">
             <div class="modal-icone"><i class="fa-solid fa-triangle-exclamation"></i></div>
@@ -46,9 +39,7 @@
         </div>
     </div>
 
-    <!-- ============================================================
-    MODAL: DETALHES DE KPI
-    ============================================================= -->
+    <!-- MODAL: DETALHES DE KPI -->
     <div id="modalKpiDetalhe" class="modal-overlay hidden">
         <div class="modal-box-formulario modal-kpi-box">
             <div class="modal-formulario-cabecalho">
@@ -66,9 +57,7 @@
         </div>
     </div>
 
-    <!-- ============================================================
-    MODAL: NOVO ALUNO / EDITAR ALUNO
-    ============================================================= -->
+    <!-- MODAL: NOVO ALUNO / EDITAR ALUNO -->
     <div id="modalFormAluno" class="modal-overlay hidden">
         <div class="modal-box-formulario">
             <div class="modal-formulario-cabecalho">
@@ -232,9 +221,7 @@
         </div>
     </div>
 
-    <!-- ============================================================
-    MODAL: EDITAR MODALIDADE
-    ============================================================= -->
+    <!-- MODAL: EDITAR MODALIDADE -->
     <div id="modalFormModalidade" class="modal-overlay hidden">
         <div class="modal-box-formulario">
             <div class="modal-formulario-cabecalho">
@@ -274,9 +261,7 @@
         </div>
     </div>
 
-    <!-- ============================================================
-    MODAL: EDITAR PROFESSOR
-    ============================================================= -->
+    <!-- MODAL: EDITAR PROFESSOR -->
     <div id="modalFormProfessor" class="modal-overlay hidden">
         <div class="modal-box-formulario">
             <div class="modal-formulario-cabecalho">
@@ -309,18 +294,16 @@
         </div>
     </div>
 
-    <!-- ============================================================
-    ESTRUTURA PRINCIPAL: SIDEBAR + CONTEÚDO
-    ============================================================= -->
+    <!-- ESTRUTURA PRINCIPAL: SIDEBAR + CONTEÚDO -->
     <div class="app-wrapper">
-        <!-- ===================== MENU LATERAL ===================== -->
+        <!-- MENU LATERAL -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-logo">
                 <i class="fa-solid fa-dumbbell logo-icone"></i>
                 <span class="logo-texto">Instituto <strong>Os 300</strong></span>
             </div>
             
-            <!-- ===================== LOGO DO INSTITUTO ===================== -->
+            <!-- LOGO DO INSTITUTO -->
             <div class="sidebar-logo-upload-wrapper">
                 <div class="sidebar-logo-upload-circulo" id="sidebarLogoUploadCirculo" title="Toque para adicionar a logo do instituto">
                     <img id="sidebarLogoPreview" class="sidebar-logo-preview-img" src="" alt="">
@@ -330,11 +313,6 @@
                 <input type="file" id="sidebarLogoArquivo" accept="image/*" class="avatar-input-oculto">
                 <input type="hidden" id="sidebarLogoBase64">
             </div>
-
-            <button type="button" id="btnConectarDrive" class="btn-conectar-drive">
-                <i class="fa-brands fa-google-drive"></i>
-                <span id="statusConexaoDrive">Conectar Google Drive</span>
-            </button>
 
             <nav class="sidebar-menu">
                 <a href="#" class="menu-item ativo" data-tela="telaDashboard">
@@ -364,16 +342,14 @@
             </nav>
         </aside>
 
-        <!-- ===================== BOTÃO MOBILE ===================== -->
+        <!-- BOTÃO MOBILE -->
         <button id="btnMenuMobile" class="btn-menu-mobile">
             <i class="fa-solid fa-bars"></i>
         </button>
 
-        <!-- ===================== CONTEÚDO PRINCIPAL ===================== -->
+        <!-- CONTEÚDO PRINCIPAL -->
         <main class="conteudo">
-            <!-- =====================================================
-            TELA: DASHBOARD
-            ===================================================== -->
+            <!-- TELA: DASHBOARD -->
             <section id="telaDashboard" class="tela ativa">
                 <header class="tela-cabecalho">
                     <h1><i class="fa-solid fa-chart-line"></i> Dashboard</h1>
@@ -491,9 +467,7 @@
                 </div>
             </section>
 
-            <!-- =====================================================
-            TELA: CONTROLE DE PRESENÇA
-            ===================================================== -->
+            <!-- TELA: CONTROLE DE PRESENÇA -->
             <section id="telaPresenca" class="tela">
                 <header class="tela-cabecalho">
                     <h1><i class="fa-solid fa-clipboard-check"></i> Controle de Presença</h1>
@@ -559,9 +533,7 @@
                 </div>
             </section>
 
-            <!-- =====================================================
-            TELA: CADASTRO DE ALUNOS
-            ===================================================== -->
+            <!-- TELA: CADASTRO DE ALUNOS -->
             <section id="telaAlunos" class="tela">
                 <header class="tela-cabecalho">
                     <h1><i class="fa-solid fa-user-graduate"></i> Cadastro de Alunos</h1>
@@ -750,9 +722,7 @@
                 </div>
             </section>
 
-            <!-- =====================================================
-            TELA: ALUNOS (LISTAGEM)
-            ===================================================== -->
+            <!-- TELA: ALUNOS (LISTAGEM) -->
             <section id="telaListaAlunos" class="tela">
                 <header class="tela-cabecalho">
                     <h1><i class="fa-solid fa-users"></i> Alunos</h1>
@@ -777,9 +747,7 @@
                 </div>
             </section>
 
-            <!-- =====================================================
-            TELA: CADASTRO DE MODALIDADES
-            ===================================================== -->
+            <!-- TELA: CADASTRO DE MODALIDADES -->
             <section id="telaModalidades" class="tela">
                 <header class="tela-cabecalho">
                     <h1><i class="fa-solid fa-people-group"></i> Cadastro de Modalidades</h1>
@@ -816,14 +784,8 @@
                 </form>
 
                 <div class="card comando-visivel">
-                        <div class="acoes-toolbar">
-                        <input type="text" id="pesquisaModalidades" class="input-pesquisa" placeholder="Pesquisar modalidade...">
-                        <label class="upload-label">
-                        <i class="fa-solid fa-file-import"></i> Importar Excel
-                        <input type="file" id="inputImportarModalidades" accept=".xlsx,.xls,.csv" class="hidden">
-                        </label>
-                        </div>
-                        <div class="tabela-wrapper">
+                    <input type="text" id="pesquisaModalidades" class="input-pesquisa" placeholder="Pesquisar modalidade...">
+                    <div class="tabela-wrapper">
                         <table id="tabelaModalidades" class="tabela-dados" style="width:100%">
                             <thead>
                                 <tr>
@@ -837,9 +799,7 @@
                 </div>
             </section>
 
-            <!-- =====================================================
-            TELA: PROFESSORES
-            ===================================================== -->
+            <!-- TELA: PROFESSORES -->
             <section id="telaProfessores" class="tela">
                 <header class="tela-cabecalho">
                     <h1><i class="fa-solid fa-chalkboard-user"></i> Professores</h1>
@@ -869,14 +829,8 @@
                 </form>
 
                 <div class="card comando-visivel">
-                        <div class="acoes-toolbar">
-                        <input type="text" id="pesquisaProfessores" class="input-pesquisa" placeholder="Pesquisar professor...">
-                        <label class="upload-label">
-                        <i class="fa-solid fa-file-import"></i> Importar Excel
-                        <input type="file" id="inputImportarProfessores" accept=".xlsx,.xls,.csv" class="hidden">
-                        </label>
-                        </div>
-                        <div class="tabela-wrapper">
+                    <input type="text" id="pesquisaProfessores" class="input-pesquisa" placeholder="Pesquisar professor...">
+                    <div class="tabela-wrapper">
                         <table id="tabelaProfessores" class="tabela-dados" style="width:100%">
                             <thead>
                                 <tr>
@@ -890,9 +844,7 @@
                 </div>
             </section>
 
-            <!-- =====================================================
-            TELA: RELATÓRIOS
-            ===================================================== -->
+            <!-- TELA: RELATÓRIOS -->
             <section id="telaRelatorios" class="tela">
                 <header class="tela-cabecalho">
                     <h1><i class="fa-solid fa-file-pdf"></i> Relatórios</h1>
@@ -953,9 +905,7 @@
                 </div>
             </section>
 
-            <!-- =====================================================
-            TELA: CONFIGURAÇÕES
-            ===================================================== -->
+            <!-- TELA: CONFIGURAÇÕES -->
             <section id="telaConfiguracoes" class="tela">
                 <header class="tela-cabecalho">
                     <h1><i class="fa-solid fa-gears"></i> Configurações</h1>
@@ -1003,9 +953,7 @@
         </main>
     </div>
 
-    <!-- ============================================================
-    BIBLIOTECAS EXTERNAS (JS)
-    ============================================================= -->
+    <!-- BIBLIOTECAS EXTERNAS (JS) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
@@ -1014,10 +962,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     
-    <!-- Google Identity Services (login para Google Drive) -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-
     <!-- Script Local -->
-<script type="module" src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
