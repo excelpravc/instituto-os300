@@ -161,6 +161,24 @@ UPLOAD DA LOGO DO INSTITUTO (abaixo do nome, na sidebar)
   color: var(--cor-texto);
 }
 .logo-texto strong { color: var(--cor-verde); }
+.btn-conectar-drive {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 22px 18px;
+  padding: 10px 14px;
+  background: var(--cor-fundo-secundario);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  color: var(--cor-texto-secundario);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transicao);
+}
+.btn-conectar-drive:hover { border-color: var(--cor-verde); color: var(--cor-verde); }
+.btn-conectar-drive.conectado { border-color: var(--cor-verde); color: var(--cor-verde); }
+.btn-conectar-drive i { font-size: 15px; }
 .sidebar-menu {
   display: flex;
   flex-direction: column;
