@@ -80,9 +80,9 @@ const DATATABLES_PT_BR = {
  * 2.5 GOOGLE DRIVE — UPLOAD DE FOTOS (substitui o Firebase Storage)
  * ================================================================================== */
 // ⚠️ PREENCHA com o Client ID OAuth criado no Google Cloud Console
-const DRIVE_CLIENT_ID = 'SEU_CLIENT_ID_AQUI.apps.googleusercontent.com';
+const DRIVE_CLIENT_ID = '383270609881-ufuhb127mtt14b4a3s90lh795rgsn19l.apps.googleusercontent.com';
 // ⚠️ PREENCHA com o ID da pasta do Google Drive (o trecho depois de /folders/ na URL)
-const DRIVE_PASTA_ID = 'SEU_ID_DE_PASTA_AQUI';
+const DRIVE_PASTA_ID = '17c05pg5BSPoOnZF2IgN99iGys5dpWLDo';
 const DRIVE_ESCOPO = 'https://www.googleapis.com/auth/drive.file';
 
 let TOKEN_DRIVE = null;
