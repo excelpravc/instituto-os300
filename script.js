@@ -396,6 +396,13 @@ const iniciarSistema = async () => {
   executarComSeguranca('vincularPesquisaInstantanea (tabelaAlunosLista)', () => vincularPesquisaInstantanea('pesquisaAlunosLista', 'tabelaAlunosLista'));
   executarComSeguranca('vincularPesquisaInstantanea (tabelaModalidades)', () => vincularPesquisaInstantanea('pesquisaModalidades', 'tabelaModalidades'));
   executarComSeguranca('vincularPesquisaInstantanea (tabelaProfessores)', () => vincularPesquisaInstantanea('pesquisaProfessores', 'tabelaProfessores'));
+  executarComSeguranca('vincularImportacaoModalidades', () => {
+    document.getElementById('inputImportarModalidades').addEventListener('change', importarPlanilhaModalidades);
+});
+
+executarComSeguranca('vincularImportacaoProfessores', () => {
+    document.getElementById('inputImportarProfessores').addEventListener('change', importarPlanilhaProfessores);
+});
   
   executarComSeguranca('datas padrão', () => {
     const hojeISO = paraInputDate(new Date());
@@ -2222,4 +2229,142 @@ const configurarTelaConfiguracoes = () => {
       esconderLoading();
     }
   });
+};
+/* ==================================================================================
+ * 21. IMPORTAÇÃO DE MODALIDADES VIA PLANILHA (SheetJS)
+ * ================================================================================== */
+const MAPA_COLUNAS_IMPORTACAO_MODALIDADES = {
+    Nome: ['Nome', 'Modalidade', 'Nome da Modalidade'],
+    Professor: ['Professor', 'Instrutor'],
+    Dias: ['Dias', 'Dias da Semana'],
+    Horarios: ['Horarios', 'Horários', 'Horario'],
+    FaixaEtaria: ['FaixaEtaria', 'Faixa Etária', 'Idade'],
+    MaxAlunos: ['MaxAlunos', 'Max Alunos', 'Máximo de Alunos'],
+    Local: ['Local', 'Localização'],
+    Descricao: ['Descricao', 'Descrição'],
+    Status: ['Status']
+};
+
+const importarPlanilhaModalidades = async (evento) => {
+    const arquivo = evento.target.files[0];
+    if (!arquivo) return;
+    
+    mostrarLoading('Lendo planilha...');
+    
+    try {
+        const bufferArquivo = await arquivo.arrayBuffer();
+        const pastaTrabalho = XLSX.read(bufferArquivo, { type: 'array', cellDates: true });
+        const primeiraAba = pastaTrabalho.Sheets[pastaTrabalho.SheetNames[0]];
+        const linhasBrutas = XLSX.utils.sheet_to_json(primeiraAba, { defval: '' });
+        
+        if (linhasBrutas.length === 0) {
+            exibirToast('A planilha selecionada está vazia.', 'erro');
+            return;
+        }
+        
+        const modalidadesNormalizadas = linhasBrutas.map(linha => {
+            const objeto = {};
+            Object.keys(MAPA_COLUNAS_IMPORTACAO_MODALIDADES).forEach(campo => {
+                for (const chave of MAPA_COLUNAS_IMPORTACAO_MODALIDADES[campo]) {
+                    if (linha[chave] !== undefined && linha[chave] !== null && linha[chave] !== '') {
+                        objeto[campo] = linha[chave];
+                        break;
+                    }
+                }
+            });
+            objeto.Status = objeto.Status || 'Ativo';
+            return objeto;
+        }).filter(m => m.Nome);
+        
+        mostrarLoading(`Importando ${modalidadesNormalizadas.length} modalidades...`);
+        
+        let importados = 0;
+        let ignorados = 0;
+        
+        for (const modalidade of modalidadesNormalizadas) {
+            try {
+                await addDoc(collection(db, 'modalidades'), modalidade);
+                importados++;
+            } catch (erro) {
+                ignorados++;
+            }
+        }
+        
+        exibirToast(`Importação concluída: ${importados} importados, ${ignorados} ignorados.`, 'sucesso');
+        await carregarModalidades();
+        await carregarDashboard(false);
+    } catch (erro) {
+        exibirToast('Erro ao ler a planilha: ' + erro.message, 'erro');
+    } finally {
+        esconderLoading();
+        evento.target.value = '';
+    }
+};
+
+/* ==================================================================================
+ * 22. IMPORTAÇÃO DE PROFESSORES VIA PLANILHA (SheetJS)
+ * ================================================================================== */
+const MAPA_COLUNAS_IMPORTACAO_PROFESSORES = {
+    Nome: ['Nome', 'Professor', 'Nome do Professor'],
+    Telefone: ['Telefone', 'Fone', 'Celular'],
+    Email: ['Email', 'E-mail'],
+    Especialidade: ['Especialidade', 'Área', 'Disciplina'],
+    Modalidades: ['Modalidades', 'Modalidade'],
+    Status: ['Status']
+};
+
+const importarPlanilhaProfessores = async (evento) => {
+    const arquivo = evento.target.files[0];
+    if (!arquivo) return;
+    
+    mostrarLoading('Lendo planilha...');
+    
+    try {
+        const bufferArquivo = await arquivo.arrayBuffer();
+        const pastaTrabalho = XLSX.read(bufferArquivo, { type: 'array', cellDates: true });
+        const primeiraAba = pastaTrabalho.Sheets[pastaTrabalho.SheetNames[0]];
+        const linhasBrutas = XLSX.utils.sheet_to_json(primeiraAba, { defval: '' });
+        
+        if (linhasBrutas.length === 0) {
+            exibirToast('A planilha selecionada está vazia.', 'erro');
+            return;
+        }
+        
+        const professoresNormalizados = linhasBrutas.map(linha => {
+            const objeto = {};
+            Object.keys(MAPA_COLUNAS_IMPORTACAO_PROFESSORES).forEach(campo => {
+                for (const chave of MAPA_COLUNAS_IMPORTACAO_PROFESSORES[campo]) {
+                    if (linha[chave] !== undefined && linha[chave] !== null && linha[chave] !== '') {
+                        objeto[campo] = linha[chave];
+                        break;
+                    }
+                }
+            });
+            objeto.Status = objeto.Status || 'Ativo';
+            return objeto;
+        }).filter(p => p.Nome);
+        
+        mostrarLoading(`Importando ${professoresNormalizados.length} professores...`);
+        
+        let importados = 0;
+        let ignorados = 0;
+        
+        for (const professor of professoresNormalizados) {
+            try {
+                await addDoc(collection(db, 'professores'), professor);
+                importados++;
+            } catch (erro) {
+                ignorados++;
+            }
+        }
+        
+        exibirToast(`Importação concluída: ${importados} importados, ${ignorados} ignorados.`, 'sucesso');
+        await carregarProfessores();
+        await carregarDashboard(false);
+    } catch (erro) {
+        exibirToast('Erro ao ler a planilha: ' + erro.message, 'erro');
+    } finally {
+        esconderLoading();
+        evento.target.value = '';
+    }
 };
