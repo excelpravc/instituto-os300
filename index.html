@@ -787,19 +787,25 @@
                 </form>
 
                 <div class="card comando-visivel">
-                    <input type="text" id="pesquisaModalidades" class="input-pesquisa" placeholder="Pesquisar modalidade...">
-                    <div class="tabela-wrapper">
-                        <table id="tabelaModalidades" class="tabela-dados" style="width:100%">
-                            <thead>
-                                <tr>
-                                    <th>Código</th><th>Nome</th><th>Professor</th><th>Dias</th>
-                                    <th>Horários</th><th>Status</th><th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
+    <div class="acoes-toolbar">
+        <input type="text" id="pesquisaModalidades" class="input-pesquisa" placeholder="Pesquisar modalidade...">
+        <label class="upload-label">
+            <i class="fa-solid fa-file-import"></i> Importar Excel
+            <input type="file" id="inputImportarModalidades" accept=".xlsx,.xls,.csv" class="hidden">
+        </label>
+    </div>
+    <div class="tabela-wrapper">
+        <table id="tabelaModalidades" class="tabela-dados" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Código</th><th>Nome</th><th>Professor</th><th>Dias</th>
+                    <th>Horários</th><th>Status</th><th>Ações</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
             </section>
 
             <!-- TELA: PROFESSORES -->
@@ -832,19 +838,25 @@
                 </form>
 
                 <div class="card comando-visivel">
-                    <input type="text" id="pesquisaProfessores" class="input-pesquisa" placeholder="Pesquisar professor...">
-                    <div class="tabela-wrapper">
-                        <table id="tabelaProfessores" class="tabela-dados" style="width:100%">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th><th>Telefone</th><th>E-mail</th>
-                                    <th>Especialidade</th><th>Status</th><th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
+    <div class="acoes-toolbar">
+        <input type="text" id="pesquisaProfessores" class="input-pesquisa" placeholder="Pesquisar professor...">
+        <label class="upload-label">
+            <i class="fa-solid fa-file-import"></i> Importar Excel
+            <input type="file" id="inputImportarProfessores" accept=".xlsx,.xls,.csv" class="hidden">
+        </label>
+    </div>
+    <div class="tabela-wrapper">
+        <table id="tabelaProfessores" class="tabela-dados" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Nome</th><th>Telefone</th><th>E-mail</th>
+                    <th>Especialidade</th><th>Status</th><th>Ações</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
             </section>
 
             <!-- TELA: RELATÓRIOS -->
